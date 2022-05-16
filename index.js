@@ -2,6 +2,7 @@ const express = require('express')
 const cors = require('cors');
 require('dotenv').config();
 const { MongoClient, ServerApiVersion } = require('mongodb');
+
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -17,12 +18,24 @@ async function run() {
     await client.connect();
     console.log('MongoDB connected');
     const serviceCollection = client.db('doctors_portal').collection('appointmentServices');
-   
-    app.get('/appointment', async(req, res) => {
+    const bookingCollection = client.db('doctors_portal').collection('bookings');
+
+    app.get('/appointment', async (req, res) => {
       const query = {};
-      const cursor =  serviceCollection.find(query);
+      const cursor = serviceCollection.find(query);
       const services = await cursor.toArray();
       res.send(services);
+    })
+
+    app.post('/bookings', async (req, res) => {
+      const booking = req.body;
+      const query = { treatment: booking.treatment, date: booking.date, patient: booking.patient }
+      const exists = await bookingCollection.findOne(query);
+      if (exists) {
+        return res.send({ success: false, booking: exists })
+      }
+      const result = await bookingCollection.insertOne(booking);
+      return res.send({ success: true, result });
     })
 
   }
@@ -33,9 +46,9 @@ async function run() {
 run().catch(console.dir);
 
 app.get('/', (req, res) => {
-  res.send('hello world')
+  res.send('Doctors Portal')
 })
 
 app.listen(port, () => {
-    console.log(port);
+  console.log(port);
 })
